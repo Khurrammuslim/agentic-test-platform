@@ -5,7 +5,7 @@ test.describe('todo smoke @smoke', () => {
     await page.goto('./');
     await page.getByPlaceholder('What needs to be done?').fill('Write test plan');
     await page.getByPlaceholder('What needs to be done?').press('Enter');
-    await expect(page.getByTestId('todo-title')).toHaveText(['Write test plan']);
+    await expect(page.getByTestId('todo-title')).toHaveText(['Wrong text']);
   });
 
   test('user can complete a todo', async ({ page }) => {
