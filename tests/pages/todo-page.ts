@@ -7,7 +7,7 @@ export class TodoPage {
   readonly count: Locator;
 
   constructor(private readonly page: Page) {
-    this.newTodo = page.getByPlaceholder('What needs to be done?');
+    this.newTodo = page.getByRole('textbox', { name: 'What needs to be done?' });
     this.items = page.getByTestId('todo-item');
     this.titles = page.getByTestId('todo-title');
     this.count = page.getByTestId('todo-count');
