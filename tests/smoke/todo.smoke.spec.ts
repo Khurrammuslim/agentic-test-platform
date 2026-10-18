@@ -1,18 +1,14 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 
 test.describe('todo smoke @smoke', () => {
-  test('user can add a todo', async ({ page }) => {
-    await page.goto('./');
-    await page.getByPlaceholder('What needs to be done?').fill('Write test plan');
-    await page.getByPlaceholder('What needs to be done?').press('Enter');
-    await expect(page.getByTestId('todo-title')).toHaveText(['Write test plan']);
+  test('user can add a todo', async ({ todoPage }) => {
+    await todoPage.add('Write test plan');
+    await expect(todoPage.titles).toHaveText(['Write test plan']);
   });
 
-  test('user can complete a todo', async ({ page }) => {
-    await page.goto('./');
-    await page.getByPlaceholder('What needs to be done?').fill('Review PR');
-    await page.getByPlaceholder('What needs to be done?').press('Enter');
-    await page.getByRole('checkbox', { name: 'Toggle Todo' }).check();
-    await expect(page.getByTestId('todo-item')).toHaveClass(/completed/);
+  test('user can complete a todo', async ({ todoPage }) => {
+    await todoPage.add('Review PR');
+    await todoPage.toggleAt(0);
+    await expect(todoPage.items).toHaveClass(/completed/);
   });
 });

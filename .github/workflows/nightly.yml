@@ -1,7 +1,7 @@
 name: Nightly regression and agent drafts
 on:
   schedule:
-    #- cron: '0 2 * * *' ***Turning off nightly for demo***
+    #- cron: '0 2 * * *' ***turning off for demo***
   workflow_dispatch:
 jobs:
   nightly:

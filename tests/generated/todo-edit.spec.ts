@@ -1,9 +1,11 @@
 // AUTO-GENERATED from charters/todo-edit.md. NEEDS HUMAN REVIEW before moving to tests/regression.
 import { test, expect } from '@playwright/test';
 
-async function add(page: import('@playwright/test').Page, item: string) {
-  await page.getByPlaceholder('What needs to be done?').fill(item);
-  await page.getByPlaceholder('What needs to be done?').press('Enter');
+async function add(page: import('@playwright/test').Page, ...items: string[]) {
+  for (const item of items) {
+    await page.getByPlaceholder('What needs to be done?').fill(item);
+    await page.getByPlaceholder('What needs to be done?').press('Enter');
+  }
 }
 
 test.describe('todo regression', () => {
@@ -11,19 +13,19 @@ test.describe('todo regression', () => {
     await page.goto('./');
   });
 
-  test('edit a todo and press Enter', async ({ page }) => {
+  test('edit a todo and counter does not change', async ({ page }) => {
     await add(page, 'original');
     await page.getByTestId('todo-item').dblclick();
-    await page.keyboard.type('edited');
+    await page.keyboard.type(' edited');
     await page.keyboard.press('Enter');
-    await expect(page.getByTestId('todo-title')).toHaveText(['edited']);
+    await expect(page.getByTestId('todo-title')).toHaveText(['original edited']);
     await expect(page.getByTestId('todo-count')).toContainText('1 item left');
   });
 
-  test('press Escape while editing keeps the old text', async ({ page }) => {
+  test('pressing Escape while editing keeps the old text', async ({ page }) => {
     await add(page, 'original');
     await page.getByTestId('todo-item').dblclick();
-    await page.keyboard.type('edited');
+    await page.keyboard.type(' edited');
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('todo-title')).toHaveText(['original']);
   });

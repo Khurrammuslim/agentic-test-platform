@@ -13,6 +13,7 @@ const system = `You write Playwright TypeScript tests. Rules:
 - Use getByRole / getByTestId / getByPlaceholder locators only. No CSS selectors, no waitForTimeout.
 - Use web-first assertions (expect(locator)...). Every assertion must come directly from the charter's Expected lines. Do not invent behaviour.
 - If the charter is ambiguous, add a comment starting with // QUESTION: instead of guessing.
+- Import test and expect from '../fixtures' and use the todoPage fixture.
 - Follow the style of the example file.`;
 
 const raw = await ask(system, `Example file:\n${style}\n\nCharter:\n${charter}`);
