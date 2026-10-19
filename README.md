@@ -18,28 +18,31 @@ The target app is the public [TodoMVC demo](https://demo.playwright.dev/todomvc/
 6. **Flaky tests are managed, not hidden.** A test can be quarantined only with an owner, a ticket and an expiry date. An expired entry fails the gate.
 7. **Failed locators get repair proposals, never silent fixes.** `npm run heal` reads the failed run, picks only tests that failed because a locator found no element, asks the LLM for a replacement locator using the page snapshot, and writes a proposal file with a diff and a reviewer checklist. It never edits a test and never touches assertion failures, because those may be real bugs.
 8. **KPIs come from every run.** A script turns Playwright's JSON results into a short report: duration, pass rate and flake rate.
+9. **An autonomous loop drafts tests for charters that have none.** `npm run autonomy` finds charters without a test, drafts a test for each, runs it, and feeds failures back to the model (up to 3 attempts). A second model then reviews the passing draft. It writes drafts to `tests/generated/` and a report to `autonomy/report.md`. It never edits `tests/regression`, never commits and never merges. A person still reads the report and opens the PR.
 
 ## Repository map
 
-| Path                          | Purpose                                                               |
-| ----------------------------- | --------------------------------------------------------------------- |
-| `tests/smoke`                 | PR gate tests: few, fast, deterministic                               |
-| `tests/regression`            | Broader coverage for nightly runs                                     |
-| `tests/generated`             | AI drafts; never block a PR until a human promotes them               |
-| `tests/pages`                 | Page object for the todo app                                          |
-| `tests/fixtures.ts`           | Playwright fixture that opens the app and provides the page object    |
-| `charters/`                   | Plain-language QA charters                                            |
-| `CLAUDE.md`                   | Product knowledge and conventions for AI agents working in this repo  |
-| `.claude/skills/`             | Agent skill: charter to test draft                                    |
-| `scripts/llm.ts`              | Small adapter to the LLM (local Ollama)                               |
-| `scripts/generate-test.ts`    | Charter to Playwright draft                                           |
-| `scripts/review-draft.ts`     | LLM-as-judge review of a draft against its charter                    |
-| `scripts/judge.ts`            | Generic LLM-as-judge for non-deterministic checks; never gates a PR   |
-| `scripts/heal-proposal.ts`    | Self-healing, proposals only: suggests locator fixes for failed tests |
-| `scripts/quarantine-check.ts` | Enforces owner, ticket and expiry on quarantined tests                |
-| `scripts/kpi-report.ts`       | Builds `kpi.md` from `results.json`                                   |
-| `quarantine.json`             | Quarantined tests (empty by default)                                  |
-| `.github/workflows`           | `pr-gate.yml` (PRs and pushes to main) and `nightly.yml` (scheduled)  |
+| Path                               | Purpose                                                                                              |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `tests/smoke`                      | PR gate tests: few, fast, deterministic                                                              |
+| `tests/regression`                 | Broader coverage for nightly runs                                                                    |
+| `tests/generated`                  | AI drafts; never block a PR until a human promotes them                                              |
+| `tests/pages`                      | Page object for the todo app                                                                         |
+| `tests/fixtures.ts`                | Playwright fixture that opens the app and provides the page object                                   |
+| `charters/`                        | Plain-language QA charters                                                                           |
+| `CLAUDE.md`                        | Product knowledge and conventions for AI agents working in this repo                                 |
+| `.claude/skills/`                  | Agent skill: charter to test draft                                                                   |
+| `scripts/llm.ts`                   | Small adapter to the LLM (local Ollama)                                                              |
+| `scripts/generate-test.ts`         | Charter to Playwright draft                                                                          |
+| `scripts/review-draft.ts`          | LLM-as-judge review of a draft against its charter                                                   |
+| `scripts/judge.ts`                 | Generic LLM-as-judge for non-deterministic checks; never gates a PR                                  |
+| `scripts/heal-proposal.ts`         | Self-healing, proposals only: suggests locator fixes for failed tests                                |
+| `scripts/quarantine-check.ts`      | Enforces owner, ticket and expiry on quarantined tests                                               |
+| `scripts/kpi-report.ts`            | Builds `kpi.md` from `results.json`                                                                  |
+| `scripts/autonomous-regression.ts` | Autonomous loop, proposals only: drafts, runs, retries and reviews tests for charters without a test |
+| `autonomy/`                        | Output of the loop: `report.md` and `rejected/` (drafts that failed all attempts); git-ignored       |
+| `quarantine.json`                  | Quarantined tests (empty by default)                                                                 |
+| `.github/workflows`                | `pr-gate.yml` (PRs and pushes to main) and `nightly.yml` (scheduled)                                 |
 
 ## Quality gates
 
@@ -66,19 +69,20 @@ npm run kpi               # writes kpi.md from the last run
 
 ## Commands
 
-| Command                                     | What it does                                        |
-| ------------------------------------------- | --------------------------------------------------- |
-| `npm run test:smoke`                        | Runs the smoke project                              |
-| `npm run test:regression`                   | Runs the regression project                         |
-| `npm run generate -- <charter>`             | Drafts a test from a charter                        |
-| `npm run review-draft -- <charter> <draft>` | Reviews a draft against its charter                 |
-| `npm run judge -- "<text>" "<rubric>"`      | Generic LLM-as-judge for a text and a rubric        |
-| `npm run heal`                              | Writes locator repair proposals from `results.json` |
-| `npm run quarantine:check`                  | Validates `quarantine.json`                         |
-| `npm run kpi`                               | Writes `kpi.md` from `results.json`                 |
-| `npm run lint` / `npm run lint:fix`         | ESLint check / auto-fix                             |
-| `npm run format` / `npm run format:check`   | Prettier write / check                              |
-| `npm run typecheck`                         | TypeScript check without emitting files             |
+| Command                                     | What it does                                                      |
+| ------------------------------------------- | ----------------------------------------------------------------- |
+| `npm run test:smoke`                        | Runs the smoke project                                            |
+| `npm run test:regression`                   | Runs the regression project                                       |
+| `npm run generate -- <charter>`             | Drafts a test from a charter                                      |
+| `npm run review-draft -- <charter> <draft>` | Reviews a draft against its charter                               |
+| `npm run judge -- "<text>" "<rubric>"`      | Generic LLM-as-judge for a text and a rubric                      |
+| `npm run heal`                              | Writes locator repair proposals from `results.json`               |
+| `npm run quarantine:check`                  | Validates `quarantine.json`                                       |
+| `npm run kpi`                               | Writes `kpi.md` from `results.json`                               |
+| `npm run lint` / `npm run lint:fix`         | ESLint check / auto-fix                                           |
+| `npm run format` / `npm run format:check`   | Prettier write / check                                            |
+| `npm run typecheck`                         | TypeScript check without emitting files                           |
+| `npm run autonomy`                          | Drafts, runs and reviews tests for charters that have no test yet |
 
 ## AI draft and review (local, free)
 
@@ -102,11 +106,33 @@ npm run heal              # writes healing/proposals/*.md
 
 Each proposal shows the old and new locator as a diff, a confidence level and a reviewer checklist. A person confirms that the UI change was intended (otherwise it is a bug), applies the change, runs the test and opens a pull request. Proposal files are git-ignored.
 
+## Autonomous loop (proposals only)
+
+```bash
+npm run autonomy          # needs Ollama running, like generate
+cat autonomy/report.md
+```
+
+For each charter that has no test in `tests/regression` or `tests/generated`, the loop:
+
+1. Asks the LLM to draft a Playwright test, using `CLAUDE.md` and the existing regression spec as style reference.
+2. Runs the draft with the `generated` project.
+3. If it fails, sends the Playwright output back to the model and tries again (default 3 attempts).
+4. If it passes, a second model reviews it against the charter and lists unsupported assertions and missing coverage.
+5. If it never passes, the draft goes to `autonomy/rejected/` and the report shows the last Playwright output.
+
+| Variable                | Default | Meaning                            |
+| ----------------------- | ------- | ---------------------------------- |
+| `AUTONOMY_MAX_CHARTERS` | 3       | Charters handled per run           |
+| `AUTONOMY_MAX_ATTEMPTS` | 3       | Draft and fix attempts per charter |
+
+A passing draft only proves the test runs green. It does not prove the assertions are right, because the model may have written assertions that match the app but not the charter. That is why the review result is advisory and a person always approves.
+
 ## When the workflows run
 
 - `pr-gate.yml` runs on every pull request, and on pushes to `main` as a post-merge check.
 - `nightly.yml` runs on a schedule (02:00 UTC) and can be started manually from the Actions tab.
-- `generate`, `review-draft` and `heal` are not part of CI. A person runs them locally.
+- `generate`, `review-draft`, `heal` and `autonomy` are not part of CI. A person runs them locally.
 - Branch protection on `main` requires the `quarantine`, `smoke (1/2)` and `smoke (2/2)` checks, with no admin bypass.
 
 ## Demo walkthrough
@@ -127,10 +153,11 @@ Each proposal shows the old and new locator as a diff, a confidence level and a 
 - Self-healing only proposes locator changes for failures with a page snapshot. A person applies them, and assertion failures are never healed.
 - No load testing is done, because the target is a public site owned by someone else.
 - Feature flag, test management and issue tracker integrations are not built.
+- The autonomous loop only creates drafts. A draft that passes can still assert the wrong thing, and a small local model reviews it.
 
 ## Possible next steps
 
-- Run a scheduled job that drafts tests from new charters, reviews them, and opens a pull request for a human.
+- Run npm run autonomy in a scheduled job and open a pull request with the drafts and report for a human.
 - Run healing in the nightly job and open a pull request for each proposal.
 - Run tests per feature-flag state.
 - Push results to a test management tool and link failures to issues.

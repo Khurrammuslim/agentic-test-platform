@@ -15,7 +15,8 @@
     "format:check": "prettier --check .",
     "prepare": "husky",
     "review-draft": "tsx scripts/review-draft.ts",
-    "heal": "tsx scripts/heal-proposal.ts"
+    "heal": "tsx scripts/heal-proposal.ts",
+    "autonomy": "tsx scripts/autonomous-regression.ts"
   },
   "lint-staged": {
     "*.ts": [
